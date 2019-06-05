@@ -25,124 +25,109 @@ class Bad():
 		return "<Bad(value='%s')>" % (self.value)
 
 
-class Unknow():
-	def __init__(self):
-		self.value = "?"
-		self.name = "unknow"
+class Unknown():
+    def __init__(self):
+        self.value = "?"
+        self.name = "unknow"
 
-	def __repr__(self):
-		return "<Unknow(value='%s')>" % (self.value)		
+    def __repr__(self):
+        return "<Unknow(value='%s')>" % (self.value)
 
 
 class Investing():
-	def __init__(self, uri='http://ru.investing.com/economic-calendar/'):
-		self.uri = uri
-		self.req = urllib.request.Request(uri)
-		self.req.add_header('User-Agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36')
-		self.result = []
+    def __init__(self, uri='http://ru.investing.com/economic-calendar/'):
+        self.uri = uri
+        self.req = urllib.request.Request(uri)
+        self.req.add_header('User-Agent',
+                            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36')
+        self.result = []
 
-	def news(self):
-		try:
-			response = urllib.request.urlopen(self.req)
-			
-			html = response.read()
-			
-			soup = BeautifulSoup(html, "html.parser")
+    def news(self):
+        try:
+            response = urllib.request.urlopen(self.req)
 
-			# Find event item fields
-			table = soup.find('table', {"id": "economicCalendarData"})
-			tbody = table.find('tbody')
-			rows = tbody.findAll('tr', {"class": "js-event-item"})
+            html = response.read()
 
-			news = {'timestamp': None,
-					'country': None,
-					'impact': None,
-					'url': None,
-					'name': None,
-					'bold': None,
-					'fore': None,
-					'prev': None,
-					'signal': None,
-					'type': None}
-			
-			for row in rows:
-				#print (row.attrs['data-event-datetime'])
-				_datetime = row.attrs['data-event-datetime']
-				news['timestamp'] = arrow.get(_datetime, "YYYY/MM/DD HH:mm:ss").timestamp
+            soup = BeautifulSoup(html, "html.parser")
 
-			for tr in rows:
-				cols = tr.find('td', {"class": "flagCur"})
-				flag = cols.find('span')
+            # Find event item fields
+            table = soup.find('table', {"id": "economicCalendarData"})
+            tbody = table.find('tbody')
+            rows = tbody.findAll('tr', {"class": "js-event-item"})
 
-				news['country'] = flag.get('title')
+            for tr in rows:
+                cols = tr.find('td', {"class": "flagCur"})
+                flag = cols.find('span')
 
-				impact = tr.find('td', {"class": "sentiment"})
-				bull = impact.findAll('i', {"class": "grayFullBullishIcon"})
+                news = {}
 
-				news['impact'] = len(bull)
+                news['country'] = flag.get('title')
 
-				event = tr.find('td', {"class": "event"})
-				a = event.find('a')
+                impact = tr.find('td', {"class": "sentiment"})
+                bull = impact.findAll('i', {"class": "grayFullBullishIcon"})
 
-				news['url'] = "{}{}".format(self.uri, a['href'])
-				news['name'] = a.text.strip()
+                news['impact'] = len(bull)
 
-				# Determite type of event
-				legend = event.find('span', {"class": "smallGrayReport"})
-				if legend:
-					news['type'] = "report"
+                event = tr.find('td', {"class": "event"})
+                a = event.find('a')
 
-				legend = event.find('span', {"class": "audioIconNew"})
-				if legend:
-					news['type'] = "speech"
+                news['url'] = "{}{}".format(self.uri, a['href'])
+                news['name'] = a.text.strip()
 
-				legend = event.find('span', {"class": "smallGrayP"})
-				if legend:
-					news['type'] = "release"
-				
-				legend = event.find('span', {"class": "sandClock"})
-				if legend:
-					news['type'] = "retrieving data"					
+                # Determite type of event
+                legend = event.find('span', {"class": "smallGrayReport"})
+                if legend:
+                    news['type'] = "report"
 
+                legend = event.find('span', {"class": "audioIconNew"})
+                if legend:
+                    news['type'] = "speech"
 
-				bold = tr.find('td', {"class": "bold"})
+                legend = event.find('span', {"class": "smallGrayP"})
+                if legend:
+                    news['type'] = "release"
 
-				if bold.text != '':
-					news['bold'] = bold.text.strip()
-				else:
-					news['bold'] = ''
+                legend = event.find('span', {"class": "sandClock"})
+                if legend:
+                    news['type'] = "retrieving data"
 
-				fore = tr.find('td', {"class": "fore"})
-				news['fore'] = fore.text.strip()
+                bold = tr.find('td', {"class": "bold"})
 
-				prev = tr.find('td', {"class": "prev"})
-				news['prev'] = prev.text.strip()
+                if bold.text != '':
+                    news['bold'] = bold.text.strip()
+                else:
+                    news['bold'] = ''
 
-				if "blackFont" in bold['class']:
-					#print ('?')
-					# news['signal'] = '?'
-					news['signal'] = Unknow()
+                fore = tr.find('td', {"class": "fore"})
+                news['fore'] = fore.text.strip()
 
-				elif "redFont" in bold['class']:
-					#print ('-')
-					# news['signal'] = '-'
-					news['signal'] = Bad()
+                prev = tr.find('td', {"class": "prev"})
+                news['prev'] = prev.text.strip()
 
-				elif "greenFont" in bold['class']:
-					#print ('+')
-					# news['signal'] = '+'
-					news['signal'] = Good()
+                if "blackFont" in bold['class']:
+                    # print ('?')
+                    # news['signal'] = '?'
+                    news['signal'] = Unknown()
 
-				else:
-					news['signal'] = Unknow()
+                elif "redFont" in bold['class']:
+                    # print ('-')
+                    # news['signal'] = '-'
+                    news['signal'] = Bad()
 
-				self.result.append(news)
-		
-		except HTTPError as error:
-			print ("Oops... Get error HTTP {}".format(error.code))
+                elif "greenFont" in bold['class']:
+                    # print ('+')
+                    # news['signal'] = '+'
+                    news['signal'] = Good()
 
-		return self.result
+                else:
+                    news['signal'] = Unknown()
 
+                self.result.append(news)
+
+        except HTTPError as error:
+            print("Oops... Get error HTTP {}".format(error.code))
+
+        return self.result
 
 if __name__ == "__main__":
 	i = Investing('http://investing.com/economic-calendar/')
