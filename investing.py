@@ -1,7 +1,7 @@
 import urllib
 import urllib.request
 from urllib.error import HTTPError
-
+from pprint import pprint
 from bs4 import BeautifulSoup
 import datetime
 import arrow
@@ -53,8 +53,11 @@ class Investing():
 			table = soup.find('table', {"id": "economicCalendarData"})
 			tbody = table.find('tbody')
 			rows = tbody.findAll('tr', {"class": "js-event-item"})
+			
+   
+			for tr in rows:
 
-			news = {'timestamp': None,
+				news = {'timestamp': None,
 					'country': None,
 					'impact': None,
 					'url': None,
@@ -64,13 +67,12 @@ class Investing():
 					'prev': None,
 					'signal': None,
 					'type': None}
-			
-			for row in rows:
-				#print (row.attrs['data-event-datetime'])
-				_datetime = row.attrs['data-event-datetime']
-				news['timestamp'] = arrow.get(_datetime, "YYYY/MM/DD HH:mm:ss").timestamp
+			       			
+				# break
+				_datetime = tr.attrs['data-event-datetime']
+				news['timestamp'] = arrow.get(_datetime, "YYYY/MM/DD HH:mm:ss").timestamp()
 
-			for tr in rows:
+
 				cols = tr.find('td', {"class": "flagCur"})
 				flag = cols.find('span')
 
@@ -146,4 +148,5 @@ class Investing():
 
 if __name__ == "__main__":
 	i = Investing('http://investing.com/economic-calendar/')
-	print (i.news())
+	res = i.news()
+	pprint(res)
